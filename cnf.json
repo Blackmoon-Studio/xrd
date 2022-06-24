@@ -1,0 +1,13 @@
+{
+	"VirtualHosts": [
+		{
+			"Type": "Forever",
+			"Port": "5000",
+			"Host": "127.0.0.1",
+			"Prefix": "/",
+			"Admins": ["irohia"],
+			"Password": "SuperAdmin"
+		}
+	],
+	"Version": ["1.0-SNAPSHOT", "In Coelo Quies, Tout Finis Ici Bas"]
+}
