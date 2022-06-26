@@ -8,9 +8,7 @@ use std::{
 };
 use libloading::{ Library, Symbol };
 
-#[path = "./core.rs"] mod core;
-
-use crate::core::{ send, parse, cram, xform };
+use xrdCommon::{ send, parse, cram, xform };
 
 #[derive(Clone)]
 struct Conn<'a>(&'a TcpStream);
