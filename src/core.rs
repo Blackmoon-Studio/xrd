@@ -6,7 +6,7 @@ use std::{
 use json::JsonValue;
 use xrdCommon::{ send, cram, xform };
 
-pub fn connectToServer(vh: &JsonValue) -> TcpStream {
+pub fn connectToServer(vh: &JsonValue) -> (String,TcpStream) {
 	let host = vh["Host"].as_str().expect("No host was specified.");
 	let port = vh["Port"].as_str().expect("No port was specified.");
 	let pref = vh["Prefix"].as_str().expect("No prefix was specified.");
@@ -33,5 +33,5 @@ mc
 mn EnableCallbacks
 pa
 paa va bool true".to_string())));
-	listener
+	(pref.to_string(),listener)
 }

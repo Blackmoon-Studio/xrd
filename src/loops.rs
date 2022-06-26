@@ -8,20 +8,17 @@ use std::{
 };
 use libloading::{ Library, Symbol };
 
-use xrdCommon::{ send, parse, cram, xform };
+use xrdCommon::{ Conn, send, parse, cram, xform };
 
-#[derive(Clone)]
-struct Conn<'a>(&'a TcpStream);
-
-pub fn servLoop<'a>(conn: &'a TcpStream) {
+pub fn servLoop<'a>(prefix: &'a String, conn: &'a TcpStream) {
 	unsafe {
 		thread::scope(|s| {
 			for file in read_dir("./plugins").unwrap() {
 				s.spawn(|| {
 					let conn = transmute::<Conn<'a>,Conn<'static>>(Conn(conn));
 					let lib = Library::new(file.unwrap().path()).unwrap();
-					let func: Symbol<unsafe extern fn(Conn)> = lib.get(b"execute").unwrap();
-					func(conn);
+					let func: Symbol<unsafe extern fn(String,Conn)> = lib.get(b"execute").unwrap();
+					func(prefix.to_string(),conn);
 				});
 			}
 		});

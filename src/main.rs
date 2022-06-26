@@ -17,8 +17,8 @@ fn main() {
 		for vh in cnf["VirtualHosts"].members() {
 			let virthost: &JsonValue = &vh;
 			s.spawn(|| {
-				let conn = core::connectToServer(virthost);
-				loops::servLoop(&conn);
+				let (prefix,conn) = core::connectToServer(virthost);
+				loops::servLoop(&prefix,&conn);
 			});
 		}
 	});

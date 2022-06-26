@@ -2,35 +2,52 @@ use std::{
 	net::TcpStream,
 	io::{ Read, Write },
 	str::from_utf8,
+	panic::catch_unwind,
 };
 use aho_corasick::AhoCorasick;
 
+#[derive(Clone)]
+pub struct Conn<'a>(pub &'a TcpStream);
+
+pub fn read(mut conn: TcpStream) -> String {
+	let mut parseBuf = [0;1024];
+	conn.read(&mut parseBuf);
+	let mut parsed = if from_utf8(&parseBuf).is_ok() { from_utf8(&parseBuf).unwrap() } else { "None" }.to_string();
+	parsed = if parsed.strip_prefix("\u{1}\0\0\u{2}\0\0\0").is_some() { parsed.strip_prefix("\u{1}\0\0\u{2}\0\0\0").unwrap().to_string() } else { parsed };
+	parsed = if parsed.strip_prefix("V\u{1}\0\0\u{2}\0\0\0").is_some() { parsed.strip_prefix("V\u{1}\0\0\u{2}\0\0\0").unwrap().to_string() } else { parsed };
+	parsed 
+}
+
 pub fn parse(message: String) -> Vec<String> {
-	let mut xmllist: Vec<&str> = vec![];
-	if message.char_indices().next().eq(&Some((0, 'V'))) { 
-		xmllist = message.strip_prefix("V").unwrap().split('\n').collect::<Vec<&str>>();
-	} else {
-		xmllist = message.split('\n').collect::<Vec<&str>>();
-	} let ac_types = AhoCorasick::new_auto_configured(&["<string>","<boolean>","<i4>","<struct>"]);
-	let ac_endtypes = AhoCorasick::new_auto_configured(&["</string>","</boolean>","</i4>","</struct>"]);
-	let mut methodName = String::new();
-	let mut argv = Vec::new();
-	if xmllist[0].starts_with("<?xml") {
-		if xmllist[1].starts_with("<methodCall>") || xmllist[1].starts_with("<methodResponse>") {
-			for x in &xmllist[2..] {
-				if x.starts_with("<methodName>") {
-					methodName.push_str(&x[x.find('>').unwrap()+1..x.rfind('<').unwrap()]);
-				} else if x.starts_with("<params>") { continue; }
-				if x.contains("<value>") || x.starts_with("<param><value>") {
-					let mat = if ac_types.find(x).is_some() { ac_types.find(x).unwrap() } else { continue; };
-					let mat2 = if ac_endtypes.find(x).is_some() { ac_endtypes.find(x).unwrap() } else { continue; };
-					argv.push(String::from(&x[mat.end()..mat2.start()]));
+	let resFunc = catch_unwind(|| {
+		let message = if message.strip_prefix("\\\u{1}\0\0\u{2}\0\0\0").is_some() { message.strip_prefix("\\\u{1}\0\0\u{2}\0\0\0").unwrap().to_string() } else { message };
+		let mut xmllist: Vec<&str> = message.split("\n").collect();
+		let ac_types = AhoCorasick::new_auto_configured(&["<string>","<boolean>","<i4>","<struct>"]);
+		let ac_endtypes = AhoCorasick::new_auto_configured(&["</string>","</boolean>","</i4>","</struct>"]);
+		let mut methodName = String::new();
+		let mut argv = Vec::new();
+		if xmllist[0].starts_with(r#"<?xml version="1.0" encoding="UTF-8"?><methodResponse>"#) {
+			return(vec!["Invalid XML-RPC".to_string()]);
+		} if xmllist[0].starts_with("<?xml") {
+			if xmllist[1].starts_with("<methodCall>") {
+				for x in &xmllist[2..] {
+					if x.starts_with("<methodName>") {
+						methodName.push_str(&x[x.find('>').unwrap()+1..x.rfind('<').unwrap()]);
+					} else if x.starts_with("<params>") { continue; }
+					if x.contains("<value>") || x.starts_with("<param><value>") {
+						let mat = if ac_types.find(x).is_some() { ac_types.find(x).unwrap() } else { continue; };
+						let mat2 = if ac_endtypes.find(x).is_some() { ac_endtypes.find(x).unwrap() } else { continue; };
+						argv.push(String::from(&x[mat.end()..mat2.start()]));
+					}
 				}
 			}
-		} else { return vec![String::from("Invalid XML-RPC, check server output")]; }
-	} else { return vec![String::from("Invalid XML-RPC, check server output")]; }
-	argv.push(methodName);
-	argv
+		}
+		argv.push(methodName);
+		argv
+	});
+	if resFunc.is_ok() {
+		return resFunc.unwrap();
+	} vec!["Invalid XML-RPC, check server output".to_string()]
 }
 
 pub fn xform(minified: String) -> String {
