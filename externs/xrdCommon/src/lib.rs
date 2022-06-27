@@ -9,6 +9,12 @@ use aho_corasick::AhoCorasick;
 #[derive(Clone)]
 pub struct Conn<'a>(pub &'a TcpStream);
 
+pub fn splitArgs(prefix: &String, message: &Vec<String>) -> Vec<String> {
+	let mut args = message[2].split(prefix).collect::<Vec<&str>>()[1].to_string();
+	let mut argv = args.split(" ").map(|x| x.to_string()).collect::<Vec<String>>();
+	argv
+}
+
 pub fn read(mut conn: TcpStream) -> String {
 	let mut parseBuf = [0;1024];
 	conn.read(&mut parseBuf);
