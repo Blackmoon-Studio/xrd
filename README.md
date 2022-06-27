@@ -6,4 +6,4 @@ Bring your batteries, we've got the sockets for them.</br>
 <hr/></br>
 Building xrd</br>
 </br>
-Just run `cargo b` in the src/ directory, copying out the cnf.json to wherever you plan to run the program.
+Just run `cargo b` in the src/ directory, copying out the cnf.json and any plugins to wherever you plan to run the program.
