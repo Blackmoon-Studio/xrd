@@ -4,9 +4,9 @@ use std::{
 	str::from_utf8,
 };
 use json::JsonValue;
-use xrdCommon::{ send, cram, xform };
+use xrdCommon::{ HostInfo, send, cram, xform };
 
-pub fn connectToServer(vh: &JsonValue) -> (String,TcpStream) {
+pub fn connectToServer(vh: &JsonValue) -> (HostInfo,TcpStream) {
 	let host = vh["Host"].as_str().expect("No host was specified.");
 	let port = vh["Port"].as_str().expect("No port was specified.");
 	let pref = vh["Prefix"].as_str().expect("No prefix was specified.");
@@ -33,5 +33,6 @@ mc
 mn EnableCallbacks
 pa
 paa va bool true".to_string())));
-	(pref.to_string(),listener)
+	let hostinfo = HostInfo{ prefix: pref.to_string(), admins: adms.members().map(|x| { x.as_str().expect("Admins array is exclusively made of strings").to_string() }).collect::<Vec<String>>() };
+	(hostinfo,listener)
 }

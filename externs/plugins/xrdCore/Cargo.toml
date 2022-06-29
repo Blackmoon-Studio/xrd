@@ -10,6 +10,7 @@ crate-type = ["dylib"]
 
 [dependencies]
 xrdCommon = "0.1.0"
+crossbeam-deque = "0.8.1"
 
 [patch.crates-io]
 xrdCommon = { path = "../../xrdCommon" }

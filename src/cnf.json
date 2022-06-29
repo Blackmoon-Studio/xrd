@@ -5,7 +5,15 @@
 			"Port": "5000",
 			"Host": "127.0.0.1",
 			"Prefix": "/",
-			"Admins": [""],
+			"Admins": ["irohia"],
+			"Password": "SuperAdmin"
+		},
+		{
+			"Type": "Forever",
+			"Port": "5002",
+			"Host": "127.0.0.1",
+			"Prefix": "/",
+			"Admins": ["irohia"],
 			"Password": "SuperAdmin"
 		}
 	],

@@ -1,13 +1,81 @@
+#![feature(let_chains)]
+
 use std::{
 	net::TcpStream,
 	io::{ Read, Write },
 	str::from_utf8,
+	any::Any,
+	clone::Clone,
+	sync::{ Arc, Mutex },
+	time::Duration,
+	thread::sleep,
 	panic::catch_unwind,
+};
+use crossbeam_deque::{
+    Injector,
+    Steal,
+    Steal::{ Empty, Retry, Success },
 };
 use aho_corasick::AhoCorasick;
 
-#[derive(Clone)]
+#[derive(Clone,Copy)]
 pub struct Conn<'a>(pub &'a TcpStream);
+
+pub struct InjectorLock<T: Clone> {
+	inj: Injector<Packet<T>>
+}
+
+impl<T: Clone> InjectorLock<T> {
+    	pub fn new(inj: Injector<Packet<T>>) -> Self {
+		Self { inj: inj }
+    	}
+	pub fn pop(&mut self, index: u8) -> Option<Packet<T>> {
+		let x = self.inj.steal();
+		if x.is_success() {
+			let y = x.success();
+			let mut z = y.unwrap();
+			if z.lim != index {
+				self.inj.push(z.clone());
+				return None;
+			} return Some(z);
+		} else { return None; }
+	} pub fn push(&mut self, toPush: Packet<T>) {
+		self.inj.push(toPush);
+	}
+}
+
+#[derive(Clone)]
+pub struct Packet<T> where T: Clone {
+	pub lim: u8,
+	pub data: T,
+}
+
+#[derive(Debug,Clone)]
+pub struct HostInfo {
+    pub prefix: String,
+    pub admins: Vec<String>,
+}
+
+pub fn recvWorkerLoop(i: Arc<Mutex<InjectorLock<String>>>, t: u8, c: TcpStream) {
+    loop {
+	let x = read(c.try_clone().unwrap());
+    	let i = i.clone();
+	i.lock().unwrap().push(Packet{lim:t,data:x.clone()});
+	sleep(Duration::from_millis(5));
+    }
+}
+
+pub fn sendWorkerLoop(i: Arc<Mutex<InjectorLock<Vec<u8>>>>, index: u8, c: TcpStream) {
+	loop {
+    		let i = i.clone();
+		let x = i.lock().unwrap().pop(index);
+    		if x.is_some() {
+			let y = x.unwrap();
+			send(c.try_clone().unwrap(),y.data);
+    		} else { continue; }
+    		sleep(Duration::from_millis(5));
+	}
+}
 
 pub fn splitArgs(prefix: &String, message: &Vec<String>) -> Vec<String> {
 	let mut args = message[2].split(prefix).collect::<Vec<&str>>()[1].to_string();
@@ -19,9 +87,9 @@ pub fn read(mut conn: TcpStream) -> String {
 	let mut parseBuf = [0;1024];
 	conn.read(&mut parseBuf);
 	let mut parsed = if from_utf8(&parseBuf).is_ok() { from_utf8(&parseBuf).unwrap() } else { "None" }.to_string();
-	parsed = if parsed.strip_prefix("\u{1}\0\0\u{2}\0\0\0").is_some() { parsed.strip_prefix("\u{1}\0\0\u{2}\0\0\0").unwrap().to_string() } else { parsed };
-	parsed = if parsed.strip_prefix("V\u{1}\0\0\u{2}\0\0\0").is_some() { parsed.strip_prefix("V\u{1}\0\0\u{2}\0\0\0").unwrap().to_string() } else { parsed };
-	parsed 
+	parsed.retain(|c| "\nABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.?-=\"\'<>1234567890 /".chars().collect::<Vec<char>>().contains(&c));
+	if parsed.chars().collect::<Vec<char>>().len() < 16 { parsed = "None".to_string(); };
+	parsed
 }
 
 pub fn parse(message: String) -> Vec<String> {

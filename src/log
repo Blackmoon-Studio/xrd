@@ -1,0 +1,138 @@
+   Compiling xrdCommon v0.1.0 (/home/autumn/Documents/Projects/xrd/externs/xrdCommon)
+warning: unused import: `any::Any`
+ --> /home/autumn/Documents/Projects/xrd/externs/xrdCommon/src/lib.rs:7:2
+  |
+7 |     any::Any,
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unnecessary parentheses around `return` value
+   --> /home/autumn/Documents/Projects/xrd/externs/xrdCommon/src/lib.rs:106:10
+    |
+106 |             return(vec!["Invalid XML-RPC".to_string()]);
+    |                   ^                                   ^
+    |
+    = note: `#[warn(unused_parens)]` on by default
+help: remove these parentheses
+    |
+106 -             return(vec!["Invalid XML-RPC".to_string()]);
+106 +             returnvec!["Invalid XML-RPC".to_string()];
+    |
+
+warning: unreachable pattern
+  --> /home/autumn/Documents/Projects/xrd/externs/xrdCommon/src/lib.rs:46:4
+   |
+46 |             _ => {},
+   |             ^
+   |
+   = note: `#[warn(unreachable_patterns)]` on by default
+
+warning: unused variable: `limit`
+  --> /home/autumn/Documents/Projects/xrd/externs/xrdCommon/src/lib.rs:77:6
+   |
+77 |     let limit = self.limit;
+   |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_limit`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+error[E0381]: borrow of possibly-uninitialized variable: `newtype`
+  --> /home/autumn/Documents/Projects/xrd/externs/xrdCommon/src/lib.rs:39:31
+   |
+39 |                 let mut setstr = |tyevar: &String| {
+   |                                  ^^^^^^^^^^^^^^^^^ use of possibly-uninitialized `newtype`
+40 |                     newtype = PVDTypes::Str(tyevar.to_string());
+   |                     ------- borrow occurs due to use in closure
+
+error[E0499]: cannot borrow `newtype` as mutable more than once at a time
+  --> /home/autumn/Documents/Projects/xrd/externs/xrdCommon/src/lib.rs:41:37
+   |
+39 |                 let mut setstr = |tyevar: &String| {
+   |                                  ----------------- first mutable borrow occurs here
+40 |                     newtype = PVDTypes::Str(tyevar.to_string());
+   |                     ------- first borrow occurs due to use of `newtype` in closure
+41 |                 }; let mut setvecstr = |tyevar: &Vec<String>| {
+   |                                        ^^^^^^^^^^^^^^^^^^^^^^ second mutable borrow occurs here
+42 |                     newtype = PVDTypes::VecStr(tyevar.to_vec());
+   |                     ------- second borrow occurs due to use of `newtype` in closure
+43 |                 }; match typevar {
+44 |                 PVDTypes::Str(string) => setstr(string),
+   |                                          ------ first borrow later used here
+
+warning: variable does not need to be mutable
+  --> /home/autumn/Documents/Projects/xrd/externs/xrdCommon/src/lib.rs:36:13
+   |
+36 |         let mut queue = VecDeque::new();
+   |             ----^^^^^
+   |             |
+   |             help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` on by default
+
+error[E0382]: use of moved value: `queue`
+  --> /home/autumn/Documents/Projects/xrd/externs/xrdCommon/src/lib.rs:53:24
+   |
+36 |         let mut queue = VecDeque::new();
+   |             --------- move occurs because `queue` has type `VecDeque<(u8, Arc<PVDTypes>)>`, which does not implement the `Copy` trait
+...
+53 |             push(downcasted, queue);
+   |                              ^^^^^ value moved here, in previous iteration of loop
+
+warning: variable does not need to be mutable
+  --> /home/autumn/Documents/Projects/xrd/externs/xrdCommon/src/lib.rs:63:6
+   |
+63 |     let mut pass: Arc<PVDTypes>;
+   |         ----^^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> /home/autumn/Documents/Projects/xrd/externs/xrdCommon/src/lib.rs:65:11
+   |
+65 |             let mut unwrapped = result.unwrap();
+   |                 ----^^^^^^^^^
+   |                 |
+   |                 help: remove this `mut`
+
+error[E0382]: use of moved value: `unwrapped.1`
+  --> /home/autumn/Documents/Projects/xrd/externs/xrdCommon/src/lib.rs:71:11
+   |
+70 |             self.queue.push_front((first,unwrapped.1));
+   |                                          ----------- value moved here
+71 |             pass = unwrapped.1;
+   |                    ^^^^^^^^^^^ value used here after move
+   |
+   = note: move occurs because `unwrapped.1` has type `Arc<PVDTypes>`, which does not implement the `Copy` trait
+
+warning: variable does not need to be mutable
+  --> /home/autumn/Documents/Projects/xrd/externs/xrdCommon/src/lib.rs:83:6
+   |
+83 |     let mut args = message[2].split(prefix).collect::<Vec<&str>>()[1].to_string();
+   |         ----^^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> /home/autumn/Documents/Projects/xrd/externs/xrdCommon/src/lib.rs:84:6
+   |
+84 |     let mut argv = args.split(" ").map(|x| x.to_string()).collect::<Vec<String>>();
+   |         ----^^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> /home/autumn/Documents/Projects/xrd/externs/xrdCommon/src/lib.rs:100:7
+    |
+100 |         let mut xmllist: Vec<&str> = message.split("\n").collect();
+    |             ----^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+Some errors have detailed explanations: E0381, E0382, E0499.
+For more information about an error, try `rustc --explain E0381`.
+warning: `xrdCommon` (lib) generated 10 warnings
+error: could not compile `xrdCommon` due to 4 previous errors; 10 warnings emitted
+   Compiling memchr v2.5.0
+   Compiling cfg-if v1.0.0
+   Compiling json v0.12.4
+   Compiling libloading v0.7.3
