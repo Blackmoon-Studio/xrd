@@ -7,14 +7,6 @@
 			"Prefix": "/",
 			"Admins": ["irohia"],
 			"Password": "SuperAdmin"
-		},
-		{
-			"Type": "Forever",
-			"Port": "5002",
-			"Host": "127.0.0.1",
-			"Prefix": "/",
-			"Admins": ["irohia"],
-			"Password": "SuperAdmin"
 		}
 	],
 	"Version": ["1.0-SNAPSHOT", "A Little Piece of Heaven"]

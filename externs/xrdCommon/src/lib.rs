@@ -18,16 +18,14 @@ use crossbeam_deque::{
 };
 use aho_corasick::AhoCorasick;
 
-#[derive(Clone,Copy)]
-pub struct Conn<'a>(pub &'a TcpStream);
-
 pub struct InjectorLock<T: Clone> {
-	inj: Injector<Packet<T>>
+	inj: Injector<Packet<T>>,
+	tc: u8,
 }
 
 impl<T: Clone> InjectorLock<T> {
-    	pub fn new(inj: Injector<Packet<T>>) -> Self {
-		Self { inj: inj }
+    	pub fn new(inj: Injector<Packet<T>>, tc: u8) -> Self {
+		Self { inj: inj, tc: tc }
     	}
 	pub fn pop(&mut self, index: u8) -> Option<Packet<T>> {
 		let x = self.inj.steal();
@@ -36,15 +34,15 @@ impl<T: Clone> InjectorLock<T> {
 			let mut z = y.unwrap();
 			if z.lim != index {
 				self.inj.push(z.clone());
-				return None;
+				return Some(z);
 			} return Some(z);
 		} else { return None; }
 	} pub fn push(&mut self, toPush: Packet<T>) {
-		self.inj.push(toPush);
+    		self.inj.push(toPush);
 	}
 }
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct Packet<T> where T: Clone {
 	pub lim: u8,
 	pub data: T,
@@ -56,24 +54,67 @@ pub struct HostInfo {
     pub admins: Vec<String>,
 }
 
-pub fn recvWorkerLoop(i: Arc<Mutex<InjectorLock<String>>>, t: u8, c: TcpStream) {
-    loop {
-	let x = read(c.try_clone().unwrap());
-    	let i = i.clone();
-	i.lock().unwrap().push(Packet{lim:t,data:x.clone()});
-	sleep(Duration::from_millis(5));
+pub struct Uplink {
+	stream: TcpStream,
+	threadId: u8,
+	cache: Arc<Mutex<InjectorLock<String>>>,
+}
+
+impl Clone for Uplink {
+    fn clone(&self) -> Uplink {
+	Uplink { stream: self.stream.try_clone().unwrap(), threadId: self.threadId.clone(), cache: self.cache.clone() }
     }
 }
 
-pub fn sendWorkerLoop(i: Arc<Mutex<InjectorLock<Vec<u8>>>>, index: u8, c: TcpStream) {
+impl Uplink {
+	pub fn new(c: TcpStream, threadId: u8, a: Arc<Mutex<InjectorLock<String>>>) -> Self {
+    		Self { stream: c, threadId: threadId, cache: a }
+	} pub fn receive(&mut self) -> String {
+    		let data = read(self.stream.try_clone().unwrap());
+    		let x = self.cache.clone();
+    		let mut y = x.lock().unwrap();
+    		y.push(Packet{lim:self.threadId,data:data.clone()});
+    		data
+	} pub fn fetchLast(&mut self) -> Option<String> {
+    		let x = self.cache.clone();
+    		let mut y = x.lock().unwrap();
+		let data = y.pop(self.threadId);
+		if data.is_none() { return None; }
+    		Some(data.unwrap().data)
+	} pub fn transmit(&mut self, data: Vec<u8>) {
+		send(self.stream.try_clone().unwrap(),data);
+	}
+}
+
+pub struct ThreadParameters {
+	pub info: HostInfo,
+	pub index: u8,
+    	pub sendQueue: Arc<Mutex<InjectorLock<Vec<u8>>>>,
+        pub recvQueue: Arc<Mutex<InjectorLock<String>>>,
+}
+
+pub fn recvWorkerLoop(i: Arc<Mutex<InjectorLock<String>>>, t: u8, mut c: Uplink) {
+    loop {
+	let mut x = c.receive();
+	if x == "None" {
+		let y = c.fetchLast();
+		if y.is_none() { continue; }
+    		x = y.unwrap();
+	}
+    	if x == "None" { continue; }
+	let i = i.clone();
+	i.lock().unwrap().push(Packet{lim:t,data:x});
+    }
+}
+
+pub fn sendWorkerLoop(i: Arc<Mutex<InjectorLock<Vec<u8>>>>, index: u8, mut c: Uplink) {
 	loop {
     		let i = i.clone();
 		let x = i.lock().unwrap().pop(index);
     		if x.is_some() {
 			let y = x.unwrap();
-			send(c.try_clone().unwrap(),y.data);
+			c.transmit(y.data);
     		} else { continue; }
-    		sleep(Duration::from_millis(5));
 	}
 }
 
